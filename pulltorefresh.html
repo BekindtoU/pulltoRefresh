@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>pull to refresh</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div id="app">
+    <header></header>
+    <main>
+      <div ref="container">
+        <div class="pull-to-refresh-layer">
+          <div v-show="!isShowLoading">
+            <i ref="icon" class="css-icon icon-upward"></i>
+            <p>下拉刷新</p>
+          </div>
+          <div v-show="isShowLoading" style="padding-top: 30px;">
+            loading
+          </div>
+        </div>
+        <div class="item" v-for="item in list" :key="item">{{item}}</div>
+      </div>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+  <script>
+    new Vue({
+      el: '#app',
+      data: {
+        isShowLoading: false
+      },
+      computed: {
+        list() {
+          return new Array(100).fill(0).map((item, index) => index)
+        }
+      },
+      mounted() {
+        this.pullRefresh(this.$refs.container, (done) => {
+          setTimeout(() => {
+            done()
+          }, 1000)
+        })
+      },
+      methods: {
+        pullRefresh(el, callback) {
+          let beginPagY = 0
+          let currentPos
+          const maxTranslateY = 150
+          const iconEl = this.$refs.icon
+          el.addEventListener('touchstart', e => {
+            if (el.scrollTop !== 0) {
+              return
+            }
+            beginPagY = e.touches[0].pageY
+            e.preventDefault()
+          })
+          el.addEventListener('touchmove', e => {
+            if (el.scrollTop !== 0) {
+              return
+            }
+            const pageY = e.touches[0].pageY
+            const distance = currentPos = pageY - beginPagY
+            if (distance < 0 || distance > maxTranslateY) {
+              // 上拉的时候不做任何处理
+              return;
+            }
+            if (distance > 60) {
+              iconEl.classList.add('active')
+              console.log(iconEl.classList);
+            } else {
+              iconEl.classList.remove('active')
+            }
+            e.preventDefault()
+            el.style.transform = `translateY(${distance}px)`
+          })
+          let clear = () => {
+            this.isShowLoading = false
+            el.style.transform = `translateY(0)`
+            setTimeout(() => {
+              el.style.transition = ``
+            }, 200)
+          }
+          el.addEventListener('touchend', () => {
+            el.style.transition = `.2s`
+            if (currentPos >= 60) {
+              this.isShowLoading = true
+              el.style.transform = `translateY(30px)`
+              callback && callback(() => {
+                clear()
+              })
+              return
+            }
+            clear()
+          })
+        }
+      }
+    })
+  </script>
+</body>
+
+</html>
